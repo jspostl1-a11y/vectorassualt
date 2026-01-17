@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VECTOR ASSAULT ULTRA MAX</title>
+    <style>
+        :root {
+            --neon-blue: #00ffff;
+            --neon-pink: #ff0055;
+            --neon-green: #00ff66;
+            --dark-bg: #050505;
+        }
+
+        body {
+            font-family: 'Consolas', 'Menlo', monospace;
+            background-color: #000;
+            color: var(--neon-blue);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        #ui-layer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            letter-spacing: 5px;
+            text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue);
+        }
+
+        .max-text {
+            color: var(--neon-pink);
+            text-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        #game-stats {
+            display: flex;
+            justify-content: space-between;
+            width: 800px;
+            padding: 10px 20px;
+            background: rgba(0, 255, 255, 0.05);
+            border-bottom: 2px solid var(--neon-blue);
+            box-sizing: border-box;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: rgba(0, 255, 255, 0.6);
+        }
+
+        #score, #level-val {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .lives-display {
+            color: var(--neon-pink);
+            font-size: 1.8rem;
+            text-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        #canvas-container {
+            position: relative;
+            line-height: 0;
+        }
+
+        canvas {
+            background-color: #000;
+            border: 2px solid var(--neon-blue);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.2), inset 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+
+        .modal {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            border: 2px solid var(--neon-blue);
+            background: #000;
+            padding: 40px;
+            box-shadow: 0 0 30px var(--neon-blue);
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .modal-content.critical {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 30px var(--neon-pink);
+        }
+
+        .control-list {
+            list-style: none;
+            padding: 0;
+            text-align: left;
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+
+        .control-list span {
+            color: var(--neon-green);
+            margin-right: 10px;
+        }
+
+        .start-btn {
+            background: transparent;
+            border: 2px solid var(--neon-blue);
+            color: var(--neon-blue);
+            padding: 15px 30px;
+            font-family: inherit;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+        }
+
+        .start-btn:hover {
+            background: var(--neon-blue);
+            color: #000;
+            box-shadow: 0 0 20px var(--neon-blue);
+        }
+
+        #weapon-hud {
+            font-size: 0.8rem;
+            color: var(--neon-green);
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-layer">
+        <h1>VECTOR ASSAULT <span class="max-text">ULTRA MAX</span></h1>
+        
+        <div id="game-stats">
+            <div class="stat-box">
+                <span class="stat-label">SCORE</span>
+                <span id="score">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">SECTOR</span>
+                <span id="level-val">1</span>
+            </div>
+            <div class="stat-box">
+                <span id="lives" class="lives-display">♥♥♥</span>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div id="start-modal" class="modal">
+                <div class="modal-content">
+                    <h2>SYSTEMS ONLINE</h2>
+                    <p>NEURAL LINK ESTABLISHED. SECTOR CLEARANCE REQUIRED.</p>
+                    <ul class="control-list">
+                        <li><span>[▲]</span> THRUST</li>
+                        <li><span>[◀ / ▶]</span> ROTATE</li>
+                        <li><span>[SPACE]</span> FIRE</li>
+                        <li><span>[1, 2, 3]</span> WEAPONS</li>
+                        <li><span>[H]</span> HYPERSPACE</li>
+                    </ul>
+                    <button class="start-btn" onclick="startGame()">ENGAGE MISSION</button>
+                </div>
+            </div>
+
+            <div id="game-over-modal" class="modal" style="display: none;">
+                <div class="modal-content critical">
+                    <h2>CRITICAL FAILURE</h2>
+                    <p>SHIP DESTROYED.</p>
+                    <div style="margin-bottom: 20px;">FINAL SCORE: <span id="final-score">0</span></div>
+                    <button class="start-btn" onclick="init()">REBOOT SYSTEM</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="weapon-hud">SYSTEMS: <span id="weapon-name">VULCAN CANNON</span></div>
+    </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreDisplay = document.getElementById('score');
+const livesDisplay = document.getElementById('lives');
+const levelDisplay = document.getElementById('level-val');
+const weaponNameDisplay = document.getElementById('weapon-name');
+const gameOverModal = document.getElementById('game-over-modal');
+const finalScoreDisplay = document.getElementById('final-score');
+const startModal = document.getElementById('start-modal');
+
+// Constants
+const PLAYER_SIZE = 15;
+const PLAYER_THRUST = 0.15;
+const PLAYER_DRAG = 0.985;
+const PLAYER_TURN_SPEED = 0.08;
+const LASER_SPEED = 12;
+const LASER_LIFESPAN = 60;
+const STARTING_ASTEROIDS = 4;
+const ASTEROID_SPEED = 1.5;
+const PLAYER_INVINCIBILITY_FRAMES = 120;
+const POWERUP_DURATION = 400;
+
+// State
+let player, asteroids = [], lasers = [], chargedShots = [], particles = [], ufos = [], enemyLasers = [], powerUps = [];
+let score = 0, lives = 3, currentLevel = 1, isGameOver = false, isPaused = true, shake = 0;
+let keys = { ArrowUp: false, ArrowLeft: false, ArrowRight: false, Space: false, h: false };
+let weaponType = 1;
+const stars = Array.from({ length: 100 }, () => ({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 2 }));
+
+function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+function random(min, max) { return Math.random() * (max - min) + min; }
+
+class Particle {
+    constructor(x, y, color, angle) {
+        this.x = x; this.y = y; this.color = color;
+        const a = angle !== undefined ? angle + Math.PI + random(-0.3, 0.3) : random(0, Math.PI * 2);
+        const s = angle !== undefined ? random(0.5, 2) : random(1, 4);
+        this.vel = { x: Math.cos(a) * s, y: Math.sin(a) * s };
+        this.lifespan = 30 + random(0, 20);
+    }
+    update() { this.x += this.vel.x; this.y += this.vel.y; this.lifespan--; }
+    draw() {
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.lifespan / 50;
+        ctx.fillRect(this.x, this.y, 2, 2);
+        ctx.globalAlpha = 1;
+    }
+}
+
+class Player {
+    constructor() {
+        this.x = canvas.width / 2; this.y = canvas.height / 2;
+        this.radius = PLAYER_SIZE; this.angle = -Math.PI / 2; this.rotation = 0;
+        this.vel = { x: 0, y: 0 }; this.isThrusting = false;
+        this.shootCooldown = 0; this.invincibleTimer = PLAYER_INVINCIBILITY_FRAMES;
+        this.shieldTimer = 0; this.hyperspaceCooldown = 0; this.speedBoost = 0;
+    }
+    update() {
+        this.angle += this.rotation;
+        if (this.isThrusting) {
+            this.vel.x += (PLAYER_THRUST + this.speedBoost) * Math.cos(this.angle);
+            this.vel.y += (PLAYER_THRUST + this.speedBoost) * Math.sin(this.angle);
+            if (Math.random() > 0.5) particles.push(new Particle(this.x, this.y, "#ffaa00", this.angle));
+        }
+        this.vel.x *= PLAYER_DRAG; this.vel.y *= PLAYER_DRAG;
+        this.x += this.vel.x; this.y += this.vel.y;
+        this.wrap();
+        if (this.shootCooldown > 0) this.shootCooldown--;
+        if (this.invincibleTimer > 0) this.invincibleTimer--;
+        if (this.shieldTimer > 0) this.shieldTimer--;
+    }
+    draw() {
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+        const blink = this.invincibleTimer > 0 && Math.floor(this.invincibleTimer / 5) % 2 === 0;
+        ctx.strokeStyle = blink ? "#333" : "#0ff"; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.radius, 0);
+        ctx.lineTo(-this.radius, -this.radius * 0.7);
+        ctx.lineTo(-this.radius * 0.5, 0);
+        ctx.lineTo(-this.radius, this.radius * 0.7);
+        ctx.closePath(); ctx.stroke();
+        ctx.restore();
+        if (this.shieldTimer > 0) {
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius + 10, 0, Math.PI * 2);
+            ctx.strokeStyle = "#0f6"; ctx.lineWidth = 2; ctx.stroke();
+        }
+    }
+    shoot() {
+        if (this.shootCooldown > 0) return;
+        if (weaponType === 1) lasers.push(new Laser(this.x, this.y, this.angle, "#0ff"));
+        else if (weaponType === 2) {
+            lasers.push(new Laser(this.x, this.y, this.angle - 0.1, "#0ff"));
+            lasers.push(new Laser(this.x, this.y, this.angle + 0.1, "#0ff"));
+        } else if (weaponType === 3) {
+            chargedShots.push({ x: this.x, y: this.y, angle: this.angle, power: 50 });
+        }
+        this.shootCooldown = 15;
+    }
+    wrap() {
+        if (this.x < 0) this.x = canvas.width; if (this.x > canvas.width) this.x = 0;
+        if (this.y < 0) this.y = canvas.height; if (this.y > canvas.height) this.y = 0;
+    }
+    destroy() {
+        if (this.shieldTimer > 0) { this.shieldTimer = 0; this.invincibleTimer = 60; return; }
+        if (this.invincibleTimer > 0) return;
+        lives--; shake = 20;
+        for(let i=0; i<30; i++) particles.push(new Particle(this.x, this.y, "#ff0055"));
+        if (lives <= 0) isGameOver = true;
+        else { this.x = canvas.width / 2; this.y = canvas.height / 2; this.vel = { x: 0, y: 0 }; this.invincibleTimer = PLAYER_INVINCIBILITY_FRAMES; }
+    }
+}
+
+class Laser {
+    constructor(x, y, angle, color) {
+        this.x = x; this.y = y; this.lifespan = LASER_LIFESPAN; this.color = color;
+        this.vel = { x: Math.cos(angle) * LASER_SPEED, y: Math.sin(angle) * LASER_SPEED };
+    }
+    update() { this.x += this.vel.x; this.y += this.vel.y; this.lifespan--; }
+    draw() {
+        ctx.strokeStyle = this.color; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x - this.vel.x * 0.5, this.y - this.vel.y * 0.5); ctx.stroke();
+    }
+}
+
+class Asteroid {
+    constructor(x, y, radius) {
+        this.x = x || Math.random() * canvas.width;
+        this.y = y || Math.random() * canvas.height;
+        this.radius = radius || 50;
+        this.vel = { x: random(-1.5, 1.5) * (1 + currentLevel * 0.1), y: random(-1.5, 1.5) * (1 + currentLevel * 0.1) };
+        this.vertices = Math.floor(random(8, 12));
+        this.offsets = Array.from({ length: this.vertices }, () => random(0.8, 1.2));
+    }
+    update() {
+        this.x += this.vel.x; this.y += this.vel.y;
+        if (this.x < -this.radius) this.x = canvas.width + this.radius;
+        if (this.x > canvas.width + this.radius) this.x = -this.radius;
+        if (this.y < -this.radius) this.y = canvas.height + this.radius;
+        if (this.y > canvas.height + this.radius) this.y = -this.radius;
+    }
+    draw() {
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < this.vertices; i++) {
+            let a = (i / this.vertices) * Math.PI * 2;
+            let r = this.radius * this.offsets[i];
+            ctx.lineTo(this.x + r * Math.cos(a), this.y + r * Math.sin(a));
+        }
+        ctx.closePath(); ctx.stroke();
+    }
+    split() {
+        if (this.radius > 20) {
+            asteroids.push(new Asteroid(this.x, this.y, this.radius / 2));
+            asteroids.push(new Asteroid(this.x, this.y, this.radius / 2));
+        }
+        if (Math.random() < 0.2) powerUps.push(new PowerUp(this.x, this.y));
+    }
+}
+
+class PowerUp {
+    constructor(x, y) {
+        this.x = x; this.y = y; this.radius = 10; this.type = ["shield", "life", "speed"][Math.floor(Math.random() * 3)];
+        this.lifespan = 400;
+    }
+    draw() {
+        ctx.strokeStyle = this.type === "shield" ? "#0f6" : this.type === "life" ? "#f05" : "#ff0";
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.stroke();
+    }
+}
+
+function handleCollisions() {
+    lasers.forEach((l, li) => {
+        asteroids.forEach((a, ai) => {
+            if (dist(l.x, l.y, a.x, a.y) < a.radius) {
+                score += 100; shake = 5;
+                for(let i=0; i<10; i++) particles.push(new Particle(a.x, a.y, "#fff"));
+                a.split(); asteroids.splice(ai, 1); lasers.splice(li, 1);
+            }
+        });
+    });
+
+    asteroids.forEach((a, i) => {
+        if (dist(player.x, player.y, a.x, a.y) < a.radius + player.radius) {
+            player.destroy(); a.split(); asteroids.splice(i, 1);
+        }
+    });
+
+    powerUps.forEach((p, i) => {
+        if (dist(player.x, player.y, p.x, p.y) < p.radius + player.radius) {
+            if (p.type === "shield") player.shieldTimer = POWERUP_DURATION;
+            if (p.type === "life") lives++;
+            if (p.type === "speed") { player.speedBoost = 0.1; setTimeout(() => player.speedBoost = 0, 3000); }
+            powerUps.splice(i, 1);
+        }
+    });
+}
+
+function update() {
+    if (isPaused || isGameOver) return;
+    shake *= 0.9;
+    player.rotation = keys.ArrowLeft ? -PLAYER_TURN_SPEED : keys.ArrowRight ? PLAYER_TURN_SPEED : 0;
+    player.isThrusting = keys.ArrowUp;
+    if (keys.Space) player.shoot();
+    player.update();
+    asteroids.forEach(a => a.update());
+    lasers.forEach((l, i) => { l.update(); if (l.lifespan <= 0) lasers.splice(i, 1); });
+    particles.forEach((p, i) => { p.update(); if (p.lifespan <= 0) particles.splice(i, 1); });
+    powerUps.forEach(p => p.lifespan--);
+    handleCollisions();
+
+    if (asteroids.length === 0) { currentLevel++; initLevel(); }
+    
+    scoreDisplay.textContent = score;
+    levelDisplay.textContent = currentLevel;
+    livesDisplay.textContent = "♥".repeat(Math.max(0, lives));
+    weaponNameDisplay.textContent = {1: "VULCAN CANNON", 2: "TWIN LASER", 3: "PLASMA CHARGE"}[weaponType];
+}
+
+function draw() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Starfield
+    ctx.fillStyle = "#fff";
+    stars.forEach(s => {
+        ctx.globalAlpha = Math.random();
+        ctx.fillRect(s.x, s.y, s.size, s.size);
+    });
+    ctx.globalAlpha = 1;
+
+    if (shake > 0.5) ctx.translate(random(-shake, shake), random(-shake, shake));
+
+    player.draw();
+    asteroids.forEach(a => a.draw());
+    lasers.forEach(l => l.draw());
+    particles.forEach(p => p.draw());
+    powerUps.forEach(p => p.draw());
+
+    if (isGameOver) {
+        finalScoreDisplay.textContent = score;
+        gameOverModal.style.display = 'flex';
+    }
+}
+
+function initLevel() {
+    for (let i = 0; i < STARTING_ASTEROIDS + currentLevel; i++) {
+        let x, y;
+        do { x = Math.random() * canvas.width; y = Math.random() * canvas.height; }
+        while (dist(x, y, player.x, player.y) < 150);
+        asteroids.push(new Asteroid(x, y));
+    }
+}
+
+function init() {
+    score = 0; lives = 3; currentLevel = 1;
+    asteroids = []; lasers = []; particles = []; powerUps = [];
+    isGameOver = false; isPaused = false;
+    player = new Player();
+    initLevel();
+    gameOverModal.style.display = 'none';
+    startModal.style.display = 'none';
+}
+
+function startGame() { init(); }
+
+window.addEventListener('keydown', e => {
+    if (e.code in keys) keys[e.code] = true;
+    if (e.key === '1') weaponType = 1;
+    if (e.key === '2') weaponType = 2;
+    if (e.key === '3') weaponType = 3;
+    if (e.key.toLowerCase() === 'h' && !isPaused) player.x = Math.random() * canvas.width; player.y = Math.random() * canvas.height;
+});
+window.addEventListener('keyup', e => { if (e.code in keys) keys[e.code] = false; });
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
